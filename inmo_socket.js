@@ -4,6 +4,7 @@ var ims = function(http) {
 	/* SOCKE T*/
 	var serverList = {};
 	var serverIdList = new Array();
+	var playerList = new Array();
 
 	io.on("connection", function(socket) {
 
@@ -14,7 +15,8 @@ var ims = function(http) {
 		var isServer = false;
 
 		socket.on("register game", function() {
-			newId = makeid();
+			newId = 'aaaaa';//makeid();
+			socket.join(newId);
 
 			serverList[newId] = socket;
 			serverIdList.push(newId);
@@ -26,11 +28,16 @@ var ims = function(http) {
 
 		socket.on("register player", function(obj) {
 			newId = obj.kode;
-			kode = makeid();
+			kode = makeid(6);
 
 			if (serverList[newId] != undefined) {
 				socket.emit("register success", newId);
-				serverList[newId].emit("new player", {kode: kode});
+				socket.join(newId);
+
+				playerList[kode] = socket;
+
+				// serverList[newId].emit("new player", {kode: kode, name: obj.name});
+				io.to(newId).emit("new player", {kode: kode, name: obj.name});
 			} else {
 				socket.emit("register fail", "tidak ada game dengan kode " + newId);
 			}
@@ -38,11 +45,17 @@ var ims = function(http) {
 			console.log("client connect with", newId);
 		})
 
+		socket.on("lose", function(kd) {
+			console.log(kode + " lose");
+			if (playerList[kd] != undefined)
+				playerList[kd].disconnect();
+		});
+
 		socket.on("move", function (arah) {
 			if (serverList[newId] != undefined) {
 				serverList[newId].emit("move", {kode: kode, arah: arah});
 			} else {
-				socket.emit("game_disconnect");
+				socket.disconnect();
 			}
 		});
 
@@ -53,27 +66,33 @@ var ims = function(http) {
 
 				console.log("disconnect server -", newId);
 			} else if (newId != "") {
-				if (serverList[newId] != undefined)
-					serverList[newId].emit("remove player", {kode: kode});
+				if (serverList[newId] != undefined) {
+					// serverList[newId].emit("remove player", {kode: kode});
+					io.to(newId).emit("remove player", {kode: kode});
+				}
+				if (playerList[kode] != undefined) {
+					playerList[kode] = undefined;
+				}
 
 				console.log("disconnect client -", newId);
 			}
 		});
 
 	});
-function makeid() {
-	var text = "";
-	var possible = "abcdefghijklmnopqrstuvwxyz";
+	function makeid(num) {
+		num = num || 5;
+		var text = "";
+		var possible = "abcdefghijklmnopqrstuvwxyz23456780";
 
-	for( var i=0; i < 5; i++ ) {
-		text += possible.charAt(Math.floor(Math.random() * possible.length));
+		for( var i=0; i < num; i++ ) {
+			text += possible.charAt(Math.floor(Math.random() * possible.length));
+		}
+
+		if (serverList[text] != undefined)
+			text = makeid();
+
+		return text;
 	}
-
-	if (serverList[text] != undefined)
-		text = makeid();
-
-	return text;
-}
 }
 
 module.exports = ims;

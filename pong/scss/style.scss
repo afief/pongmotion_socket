@@ -1,13 +1,35 @@
-$width: 480;
-$height: 750;
+$pageWidth: 1000px;
+
+$width: 480px;
+$height: 750px;
 
 body {
 	margin: 0px;
 	padding: 0px;
 }
 
+.page {
+	width: $pageWidth;
+	margin: 0px auto;
+	background-color: #ff9944;
+	box-shadow: 1px 1px 3px -1px #444;
+	&:after {
+		content: " ";
+		clear: both;
+		display: table;
+	}
+}
 .game {
 	canvas {
 		background-color: #ddd;
 	}
+	float: left;
+}
+.sidebar {
+	float: left;
+	width: $pageWidth - $width;	
+	.wrapper {
+		padding: 10px;
+	}
+	font-family: "Arial", cursive;
 }

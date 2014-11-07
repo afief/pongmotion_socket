@@ -1,7 +1,7 @@
 {
-  "name": "flappy-battle",
+  "name": "pongmotion",
   "version": "0.0.1",
-  "description": "Flappy Battle Mode",
+  "description": "simple pong game that you can control using mobile browser via socket.io",
   "dependencies": {
     "connect-slashes": "^1.3.0",
     "express": "^4.10.1",

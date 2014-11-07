@@ -4,10 +4,11 @@ window.addEventListener("load", init);
 function init() {
     showPage("page1");
     var arah = 0;
-    var socket = new io();
+    var socket;
 
     function socketInit() {
         showPage("page1");
+        socket = new io();
 
         socket.on("connect", function() {
             console.log("connected");
@@ -26,6 +27,12 @@ function init() {
         socket.on('disconnect', function(){
             console.log("DISCONNECT"); //ganti alert
             showPage("page1");
+
+            window.setTimeout(function() {
+                console.log("reconnect");
+
+                socketInit();
+            }, 3000);
         });
         socket.on('game_disconnect', function() {
             alert("game disconnected");
@@ -48,7 +55,7 @@ function init() {
         } else {
             socket.emit("register player", {as: "client", kode: gamecode, name: userName});
         }
-
+        console.log(socket);
         console.log(gamecode);
     }
 

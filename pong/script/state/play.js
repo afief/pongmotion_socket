@@ -6,9 +6,10 @@ var play = function() {
 	var players = new Array();
 	var playerData = {};
 
-	var isGameOver = false;
+	var isGameOver = true;
+	var socket;
 
-	var Player = function(game, x, y) {
+	var Player = function(game, x, y, name) {
 		Phaser.Sprite.call(this, game, 0, 0, 'box');
 
 		this.anchor.setTo(0.5,0.5);
@@ -21,7 +22,10 @@ var play = function() {
 
 		var tekanan = 0;
 
-		this.toLeft = function() {
+		this.kode = "";
+		this.name = name;
+
+		this.toLeft = function() {			
 			if ((tekanan > -250) && (this.x > (this.width/2))) {
 				tekanan -= 50;
 			}
@@ -33,6 +37,7 @@ var play = function() {
 		}
 
 		this.update = function() {
+			
 			if (tekanan != 0) {
 				this.body.velocity.x = tekanan;
 				if (tekanan < -2) {
@@ -64,7 +69,7 @@ var play = function() {
 		this.body.velocity.x = 0;
 		this.body.velocity.y = 0;
 
-		var speed = 500;
+		var speed = 200;
 		var isPlay = false;
 
 		this.arah = {x: 0, y: 0};
@@ -93,9 +98,11 @@ var play = function() {
 
 				/*MENENTUKAN PEMENANG*/
 				if (this.y < 0) {
-					getWinner(2);
+					socket.emit("lose", player1.kode);
+					setWinner(player2);
 				} else if (this.y > game.canvas.height) {
-					getWinner(1);
+					socket.emit("lose", player2.kode);
+					setWinner(player1);
 				}
 			}
 		}
@@ -124,18 +131,15 @@ var play = function() {
 		con.blue("PLAY create");
 
 		// reset();
+		setInfo("Wainting For Users");
 
 		socketInit();
 	}
 	function reset() {
-		player1 = new Player(_.game, _.game.canvas.width/2, 60);
-		_.add.existing(player1);
+		ball.arah = {x: 0.5, y: 0.5};
+		ball.start();
 
-		player2 = new Player(_.game, _.game.canvas.width/2, _.game.canvas.height - 60);
-		_.add.existing(player2);
-
-		ball = new Ball(_.game, _.game.canvas.width/2, _.game.canvas.height/2);
-		_.add.existing(ball);
+		isGameOver = false;
 	}
 
 	/*GAME UPDATE*/
@@ -168,20 +172,82 @@ var play = function() {
 		ball.arah.y = -0.5;
 		ball.arah.x = -0.5;
 		ball.start();
+
+		isGameOver = false;
 	}
 	function gameOver() {
+		if (isGameOver) return;
+
 		isGameOver = true;
-		player1.matikan();
-		player2.matikan();
+
+		// player1.matikan();
+		// player2.matikan();
 		ball.matikan();
+
+		// player1 = undefined;
+		// player2 = undefined;
+		ball = undefined;
+
+
 	}
-	function getWinner(pemainKe) {
-		con.green("WINNER : " + pemainKe);
+	function setWinner(pemain) {
+		con.green("WINNER : " + pemain.name);
+
+		setInfo("<i>WINNER</i> <b>" + pemain.name + "</b>");
+		players.unshift(pemain.kode);
+
 		gameOver();
+	}
+	function setInfo(txt) {
+		info.innerHTML = txt;
+	}
+
+	function cekPlayer() {
+		var rebornDetect = false;
+		if (players.length > 0) {
+			if (player1 == undefined) {
+				player1 = new Player(_.game, _.game.canvas.width/2, 60, playerData[players[0]].name);
+				player1.kode = playerData[players[0]].kode;
+				_.add.existing(player1);
+
+				players.splice(0,1);
+				rebornDetect = true;
+			}
+		}
+		if (players.length > 0) {
+			if (player2 == undefined) {
+				player2 = new Player(_.game, _.game.canvas.width/2, _.game.canvas.height - 60, playerData[players[0]].name);
+				player2.kode = playerData[players[0]].kode;
+				_.add.existing(player2);
+
+				players.splice(0,1);
+				rebornDetect = true;
+			}
+		}
+		if ((player1 != undefined) && (player2 != undefined) && rebornDetect) {
+			ball = new Ball(_.game, _.game.canvas.width/2, _.game.canvas.height/2);
+			_.add.existing(ball);
+
+			window.setTimeout(play, 3000);
+		}
+
+		setInfo(((player1 != undefined)?player1.name:" [waiting] ") + " vs " + ((player2 != undefined)?player2.name:" [waiting] "));
+		updateList();
+	}
+	function updateList() {
+		antrian.innerHTML = "";
+
+		var newEl;
+		for (var i = 0; i < players.length; i++) {
+			newEl = document.createElement("li");
+			newEl.innerHTML = playerData[players[i]].name;
+
+			antrian.appendChild(newEl);
+		}
 	}
 
 	function socketInit() {
-		var socket = io();
+		socket = io();
 
 		socket.on("connect", function() {
 			con.green("connected");
@@ -190,22 +256,30 @@ var play = function() {
 
 		socket.on("register success", function(kode) {
 			con.l("register code", kode);
+
+			gameCodeEl.innerHTML = "Game Code : " + kode;
 		});
 
 		socket.on("new player", function(obj) {
 			con.l("new player " + obj.kode);
 
+			obj.socket = socket;
+
 			players.push(obj.kode);
 			playerData[obj.kode] = obj;
+
+			cekPlayer();
 		});
 
 		socket.on("remove player", function(obj) {
 			con.l("remove player", obj.kode);
-			if (players.indexOf(obj.kode) >= 0) {
-				if (players.indexOf(obj.kode) == 0) {
-					getWinner(2);
-				} else if (players.indexOf(obj.kode) == 1) {
-					getWinner(1);
+			if (playerData[obj.kode] != undefined) {
+				if (player1 && (player1.kode == obj.kode)) {
+					if (player2 != undefined)
+						setWinner(player2);
+				} else if (player2 && (player2.kode == obj.kode)) {
+					if (player1 != undefined)
+						setWinner(player1);	
 				}
 
 				players.splice(players.indexOf(obj.kode), 1);
@@ -217,14 +291,14 @@ var play = function() {
 
 			// con.l(obj, players.indexOf(obj.kode));
 
-			if (players.indexOf(obj.kode) == 0) {
+			if (player1 && (player1.kode == obj.kode)) {
 				if (obj.arah > 0) {
 					player1.toRight();
 				} else if (obj.arah < 0) {
 					player1.toLeft();
 				}
 			}
-			if (players.indexOf(obj.kode) == 1) {
+			if (player2 && (player2.kode == obj.kode)) {
 				if (obj.arah > 0) {
 					player2.toRight();
 				} else if (obj.arah < 0) {
