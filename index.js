@@ -12,7 +12,7 @@ app.use('/pong/control', express.static(__dirname + '/pong/control'));
 // app.set("views", "./pong")
 app.get("/", function(req, res) {
 	app.set("view engine", "html");
-	res.render(__dirname + "/pong/index.html", {url: req.get('host') + "/control"});
+	res.render(__dirname + "/pong/index.html", {url: "bit.ly/pongmo1"});
 });
 app.get("/control", function(req, res) {
 	res.sendFile(__dirname + "/pong/control/index.html");
