@@ -69,7 +69,7 @@ var play = function() {
 		this.body.velocity.x = 0;
 		this.body.velocity.y = 0;
 
-		var speed = 200;
+		var speed = 500;
 		var isPlay = false;
 
 		this.arah = {x: 0, y: 0};
@@ -267,7 +267,7 @@ var play = function() {
 		socket.on("register success", function(kode) {
 			con.l("register code", kode);
 
-			gameCodeEl.innerHTML = "Game Code : " + kode;
+			gameCodeEl.innerHTML = kode;
 		});
 
 		socket.on("player new", function(obj) {

@@ -11,7 +11,8 @@ app.use('/pong/control', express.static(__dirname + '/pong/control'));
 
 // app.set("views", "./pong")
 app.get("/", function(req, res) {
-	res.sendFile(__dirname + "/pong/index.html");
+	app.set("view engine", "html");
+	res.render(__dirname + "/pong/index.html", {url: req.get('host') + "/control"});
 });
 app.get("/control", function(req, res) {
 	res.sendFile(__dirname + "/pong/control/index.html");
@@ -23,6 +24,6 @@ app.get("/pong/scss/:file", function(req, res) {
 	res.render(__dirname + "/pong/scss/" + req.params.file);
 });
 
-http.listen(80, function() {
-	console.log("listen to 80");
+http.listen(81, function() {
+	console.log("listen to 81");
 });

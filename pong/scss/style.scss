@@ -32,4 +32,11 @@ body {
 		padding: 10px;
 	}
 	font-family: "Arial", cursive;
+	p {
+		font-size: large;
+		span {
+			font-weight: bold;
+			font-size: xx-large;
+		}
+	}
 }
