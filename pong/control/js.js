@@ -5,6 +5,9 @@ function init() {
     showPage("page1");
     var arah = 0;
     var socket;
+    var kode = "";
+
+    var arPemain = new Array();
 
     function socketInit() {
         showPage("page1");
@@ -14,14 +17,40 @@ function init() {
             console.log("connected");
         });
 
-        socket.on("register success", function(newId) {
-            console.log("register success");
-            showPage("page2");
+        socket.on("register success", function(obj) {
+            console.log("register success", obj.kode);
+            kode = obj.kode;
+
+            showPage("page5");            
         });
         socket.on("register fail", function(msg) {
             console.log("register fail");
             alert(msg);
             showPage("page1");
+        });
+        socket.on("player new", function(obj) {
+            console.log("player new", obj);
+        });
+        socket.on("player play", function(obj) {
+            console.log("player play", obj.kode);
+
+            if (obj.kode == kode) {
+                showPage("page2");
+            }
+        });
+        socket.on("player lose", function(obj) {
+            console.log("player lose", obj.kode);
+
+            if (obj.kode == kode) {
+                showPage("page4");
+            }
+        });
+        socket.on("player remove", function(obj) {
+            console.log("player remove", obj);
+
+            if (obj.kode == kode) {
+                showPage("page4");
+            }
         });
 
         socket.on('disconnect', function(){
@@ -34,10 +63,7 @@ function init() {
                 socketInit();
             }, 3000);
         });
-        socket.on('game_disconnect', function() {
-            alert("game disconnected");
-            showPage("page1");
-        });
+
         socket.on('error', function() {
             alert("game error");
             showPage("page1");
@@ -45,6 +71,9 @@ function init() {
     }
     socketInit();
 
+    btGameOverPlay.addEventListener("click", function() {
+        showPage("page1");
+    });
     btMasuk.addEventListener("click", masukHandler);
     function masukHandler() {
         var gamecode = inputCode.value;

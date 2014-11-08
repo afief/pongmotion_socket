@@ -1,59 +1,56 @@
 var ims = function(http) {
 	var io = require('socket.io')(http);
 
-	/* SOCKE T*/
-	var serverList = {};
-	var serverIdList = new Array();
-	var playerList = new Array();
+	/* SOCKET*/
+	var gameList = {};
 
 	io.on("connection", function(socket) {
 
-		console.log("_____________________________________");
+		console.log("_____________ " + socket.id);
 
-		var newId = "";
-		var kode = "";
+		var idGame = "";
 		var isServer = false;
 
 		socket.on("register game", function() {
-			newId = 'aaaaa';//makeid();
-			socket.join(newId);
+			idGame = makeid();
 
-			serverList[newId] = socket;
-			serverIdList.push(newId);
+			socket.join(idGame);
+			gameList[idGame] = socket;
+
 			isServer = true;
 
-			socket.emit("register success", newId);
-			console.log("server register", newId);
+			socket.emit("register success", idGame);
+			console.log("server register", idGame);
 		});
 
 		socket.on("register player", function(obj) {
-			newId = obj.kode;
-			kode = makeid(6);
+			idGame = obj.kode;
 
-			if (serverList[newId] != undefined) {
-				socket.emit("register success", newId);
-				socket.join(newId);
+			if (gameList[idGame] != undefined) {
+				socket.emit("register success", {kode: socket.id, name: obj.name});
+				socket.join(idGame);
 
-				playerList[kode] = socket;
-
-				// serverList[newId].emit("new player", {kode: kode, name: obj.name});
-				io.to(newId).emit("new player", {kode: kode, name: obj.name});
+				io.to(idGame).emit("player new", {kode: socket.id, name: obj.name});
 			} else {
-				socket.emit("register fail", "tidak ada game dengan kode " + newId);
+				socket.emit("register fail", "tidak ada game dengan kode " + idGame);
 			}
 
-			console.log("client connect with", newId);
+			console.log("client connect with", idGame);
 		})
 
-		socket.on("lose", function(kd) {
-			console.log(kode + " lose");
-			if (playerList[kd] != undefined)
-				playerList[kd].disconnect();
+		socket.on("player lose", function(id) {
+			console.log(id + " lose");
+			io.to(idGame).emit("player lose", {kode: id});
+		});
+
+		socket.on("player play", function(id) {
+			console.log(id + " play");
+			io.to(idGame).emit("player play", {kode: id});
 		});
 
 		socket.on("move", function (arah) {
-			if (serverList[newId] != undefined) {
-				serverList[newId].emit("move", {kode: kode, arah: arah});
+			if (gameList[idGame] != undefined) {
+				gameList[idGame].emit("move", {kode: socket.id, arah: arah});
 			} else {
 				socket.disconnect();
 			}
@@ -61,20 +58,15 @@ var ims = function(http) {
 
 		socket.on("disconnect", function() {
 			if (isServer) {
-				serverList[newId] = undefined;
-				serverIdList.splice(serverIdList.indexOf(newId), 1);
+				gameList[idGame] = undefined;
 
-				console.log("disconnect server -", newId);
-			} else if (newId != "") {
-				if (serverList[newId] != undefined) {
-					// serverList[newId].emit("remove player", {kode: kode});
-					io.to(newId).emit("remove player", {kode: kode});
-				}
-				if (playerList[kode] != undefined) {
-					playerList[kode] = undefined;
+				console.log("disconnect server -", idGame);
+			} else if (idGame != "") {
+				if (gameList[idGame] != undefined) {
+					io.to(idGame).emit("player remove", {kode: socket.id});
 				}
 
-				console.log("disconnect client -", newId);
+				console.log("disconnect client -", idGame);
 			}
 		});
 
@@ -88,7 +80,7 @@ var ims = function(http) {
 			text += possible.charAt(Math.floor(Math.random() * possible.length));
 		}
 
-		if (serverList[text] != undefined)
+		if (gameList[text] != undefined)
 			text = makeid();
 
 		return text;

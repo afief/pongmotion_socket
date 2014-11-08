@@ -98,10 +98,12 @@ var play = function() {
 
 				/*MENENTUKAN PEMENANG*/
 				if (this.y < 0) {
-					socket.emit("lose", player1.kode);
+					socket.emit("player lose", player1.kode);
+					setLoser(player1);
 					setWinner(player2);
 				} else if (this.y > game.canvas.height) {
-					socket.emit("lose", player2.kode);
+					socket.emit("player lose", player2.kode);
+					setLoser(player2);
 					setWinner(player1);
 				}
 			}
@@ -179,22 +181,25 @@ var play = function() {
 		if (isGameOver) return;
 
 		isGameOver = true;
-
-		// player1.matikan();
-		// player2.matikan();
 		ball.matikan();
-
-		// player1 = undefined;
-		// player2 = undefined;
 		ball = undefined;
-
-
+	}
+	function setLoser(pemain) {
+		if (player1 && (pemain.kode == player1.kode)) {
+			pemain.matikan();
+			player1 = undefined;
+		}
+		if (player2 && (pemain.kode == player2.kode)) {
+			pemain.matikan();
+			player2 = undefined;
+		}
 	}
 	function setWinner(pemain) {
 		con.green("WINNER : " + pemain.name);
 
 		setInfo("<i>WINNER</i> <b>" + pemain.name + "</b>");
-		players.unshift(pemain.kode);
+
+		window.setTimeout(cekPlayer, 2000);
 
 		gameOver();
 	}
@@ -214,6 +219,7 @@ var play = function() {
 				rebornDetect = true;
 			}
 		}
+
 		if (players.length > 0) {
 			if (player2 == undefined) {
 				player2 = new Player(_.game, _.game.canvas.width/2, _.game.canvas.height - 60, playerData[players[0]].name);
@@ -224,9 +230,13 @@ var play = function() {
 				rebornDetect = true;
 			}
 		}
+
 		if ((player1 != undefined) && (player2 != undefined) && rebornDetect) {
 			ball = new Ball(_.game, _.game.canvas.width/2, _.game.canvas.height/2);
 			_.add.existing(ball);
+
+			socket.emit("player play", player1.kode);
+			socket.emit("player play", player2.kode);
 
 			window.setTimeout(play, 3000);
 		}
@@ -260,8 +270,8 @@ var play = function() {
 			gameCodeEl.innerHTML = "Game Code : " + kode;
 		});
 
-		socket.on("new player", function(obj) {
-			con.l("new player " + obj.kode);
+		socket.on("player new", function(obj) {
+			con.l("player new" + obj.kode);
 
 			obj.socket = socket;
 
@@ -271,8 +281,8 @@ var play = function() {
 			cekPlayer();
 		});
 
-		socket.on("remove player", function(obj) {
-			con.l("remove player", obj.kode);
+		socket.on("player remove", function(obj) {
+			con.l("player remove", obj.kode);
 			if (playerData[obj.kode] != undefined) {
 				if (player1 && (player1.kode == obj.kode)) {
 					if (player2 != undefined)
@@ -280,10 +290,12 @@ var play = function() {
 				} else if (player2 && (player2.kode == obj.kode)) {
 					if (player1 != undefined)
 						setWinner(player1);	
+				} else {
+					players.splice(players.indexOf(obj.kode), 1);
 				}
-
-				players.splice(players.indexOf(obj.kode), 1);
 				playerData[obj.kode] = undefined;
+
+				window.setTimeout(cekPlayer, 2000);
 			}
 		});
 
